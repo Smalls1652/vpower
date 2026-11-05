@@ -340,7 +340,7 @@ fn main() {
     // Keep for heuristics.
     let mut prev_ac_status: Option<&str> = None;
     let mut prev_battery_percent: Option<f64> = None;
-    let mut prev_battery_percent_hist: [f64; 9] = [-1.0; 9];
+    let mut prev_battery_percent_hist: [f64; 15] = [-1.0; 15];
 
     let mut warning_emitted_charger_low_energy: bool = false;
     let mut warning_emitted_ac_status_unknown: bool = false;
