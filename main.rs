@@ -301,9 +301,47 @@ fn main() {
 
     // MaxChargeLevel files
     let maxchargelevel_path_std = path_bat.display().to_string() + "/charge_control_end_threshold";
+	let mut maxchargelevel_path_deck = "/sys/devices/pci0000:00/0000:00:14.3/PNP0C09:00/VLV0100:00/steamdeck-hwmon/hwmon/hwmon3/max_battery_charge_level".to_string();
+
+	// Attempt to dynamically find the correct hwmon path.
+	// If it's not found, the path defined on `maxchargelevel_path_deck` is used.
+	if let Ok(hwmon_items) = PathBuf::from("/sys/class/hwmon").read_dir() {
+		let hwmon_paths: Vec<PathBuf> = hwmon_items
+			.filter_map(Result::ok)
+            .filter_map(|entry| {
+				let entry = entry.path();
+
+				// Filter paths to only be `steamdeck_hwmon`.
+				let hwmon_name_path = entry.join("name");
+				match std::fs::read_to_string(&hwmon_name_path) {
+					Ok(name) => match name.trim() == "steamdeck_hwmon" {
+						true => Some(entry),
+						false => None,
+					},
+					Err(_) => None
+				}
+			})
+            .collect();
+
+		for path_item in hwmon_paths {
+			let chargelevel_path = path_item.join("max_battery_charge_level");
+
+			// If `max_battery_charge_level` exists, overwrite the hardcoded
+			// value for `maxchargelevel_path_deck` to the found path.
+			if chargelevel_path.exists() {
+				maxchargelevel_path_deck = chargelevel_path.display().to_string();
+				continue;
+			}
+		}
+	};
+
+	if DEBUG {
+		println!("DBG: Init: MaxChargeLevel feature: Deck sysfs path '{}'", &maxchargelevel_path_deck);
+	}
+
     let maxchargelevel_filenames = vec![
 	// SteamDeck, LCD and OLED models
-	"/sys/devices/pci0000:00/0000:00:14.3/PNP0C09:00/VLV0100:00/steamdeck-hwmon/hwmon/hwmon3/max_battery_charge_level",
+	&maxchargelevel_path_deck,
 	// generic value supported by e.g. many consumer laptops
 	&maxchargelevel_path_std,
     ];
